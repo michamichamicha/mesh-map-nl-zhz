@@ -137,7 +137,7 @@
       <!-- Info -->
       <section>
         <div class="text-xs italic text-slate-400">
-          <span>Must remain in foreground with screen on.</span>
+          <span>Must remain in foreground with screen on and unlocked.</span>
         </div>
         <div class="text-xs italic text-slate-400">
           <span>Does not work in Safari. Use <a class="underline" target="blank"
@@ -148,6 +148,12 @@
               region</a>.</span>
         </div>
       </section>
+
+      <!-- Debug -->
+      <section>
+        <div class="text-xs italic text-slate-400" id="debugConsole">
+        </div>
+      </section>
     </div>
   </main>
 
@@ -155,22 +161,6 @@
   <script type="module">
     import { onLoad } from '/content/wardrive.js';
     onLoad();
-  </script>
-  <script>
-    window.addEventListener('load', () => {
-      const info = {
-        hasNavigatorBluetooth: 'bluetooth' in navigator,
-        hasBluefyBluetooth: 'bluetooth' in window,
-        hasNavigatorBluetoothScreenDim: navigator.bluetooth != undefined && 'setScreenDimEnabled' in navigator.bluetooth,
-        hasBluefyBluetoothScreenDim: window.bluetooth != undefined && 'setScreenDimEnabled' in window.bluetooth,
-        setScreenDimEnabledType: typeof window.bluetooth?.setScreenDimEnabled,
-      };
-
-      const pre = document.createElement('pre');
-      pre.className = "text-xs italic text-slate-400";
-      pre.textContent = JSON.stringify(info, null, 2);
-      document.body.appendChild(pre);
-    });
   </script>
 </body>
 

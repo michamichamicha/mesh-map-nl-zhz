@@ -9,6 +9,7 @@ const channelInfoEl = $("channelInfo");
 const lastSampleInfoEl = $("lastSampleInfo");
 const controlsSection = $("controls");
 const logBody = $("logBody");
+const consoleEl = $("debugConsole");
 
 const connectBtn = $("connectBtn");
 const disconnectBtn = $("disconnectBtn");
@@ -17,6 +18,7 @@ const autoToggleBtn = $("autoToggleBtn");
 const clearLogBtn = $("clearLogBtn");
 const intervalSelect = $("intervalSelect");
 const minDistanceSelect = $("minDistanceSelect");
+const debugConsole = $("minDistanceSelect");
 
 const wardriveChannelName = "#wardrive";
 
@@ -26,6 +28,12 @@ function setStatus(text, color = null) {
   if (color) {
     statusEl.className = "font-semibold " + color;
   }
+}
+
+function log(msg) {
+  const entry = document.createElement('pre');
+  entry.textContent = msg;
+  debugConsole.appendChild(pre);
 }
 
 // --- State ---
@@ -153,6 +161,7 @@ async function acquireWakeLock() {
   // Bluefy-specfic -- it's a bit better when available.
   if ('setScreenDimEnabled' in navigator.bluetooth) {
     navigator.bluetooth.setScreenDimEnabled(false);
+    log('setScreenDimEnabled(false)');
   } else {
     try {
       if ('wakeLock' in navigator) {
@@ -174,6 +183,7 @@ async function acquireWakeLock() {
 async function releaseWakeLock() {
   if ('setScreenDimEnabled' in navigator.bluetooth) {
     navigator.bluetooth.setScreenDimEnabled(true);
+    log('setScreenDimEnabled(true)');
   } else {
     if (state.wakeLock !== null) {
       state.wakeLock.release();
@@ -544,6 +554,7 @@ document.addEventListener('visibilitychange', async () => {
 if ('bluetooth' in navigator) {
   navigator.bluetooth.addEventListener('backgroundstatechanged',
     (e) => {
+      log(JSON.stringify(e, 2));
       const isBackground = e.detail && e.detail.isBackground;
       if (isBackground && state.autoMode) {
         stopAutoMode();
