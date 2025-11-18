@@ -54,6 +54,11 @@ body,
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
   font-size: 14px;
   line-height: 1.4;
+  width: 10em;
+}
+
+.mesh-control-row {
+  align-items: center;
 }
 
 .mesh-control-row + .mesh-control-row {
@@ -61,10 +66,21 @@ body,
 }
 
 .mesh-control-row label {
+  display: flex;
+  gap: 8px;
   font-weight: 500;
 }
 
-.mesh-control button {
+.mesh-control input,
+.mesh-control select {
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  flex: 1 1 0%;
+  min-width: 0px;
+}
+
+.mesh-control-row button {
   padding: 2px 8px;
   border-radius: 3px;
   border: 1px solid #ccc;
@@ -72,12 +88,6 @@ body,
   cursor: pointer;
 }
 
-.mesh-control select {
-  border-radius: 3px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-}
-
-.mesh-control button:hover {
+.mesh-control-row button:hover {
   background: #e8e8e8;
 }

@@ -12,6 +12,7 @@ let sampleLayer = L.layerGroup().addTo(map);
 let repeaterLayer = L.layerGroup().addTo(map);
 let nodes = null; // Holds fetched results.
 let repeaterRenderMode = 'all';
+let repeaterSearch = '';
 
 const mapControl = L.control({ position: 'topright' });
 mapControl.onAdd = m => {
@@ -29,18 +30,31 @@ mapControl.onAdd = m => {
       </label>
     </div>
     <div class="mesh-control-row">
+      <label>
+        Find Id:
+        <input type="text" id="repeater-search" />
+      </lable>
+    </div>
+    <div class="mesh-control-row">
       <button type="button" id="refresh-map-button">Refresh map</button>
     </div>
   `;
-
-  div.querySelector("#refresh-map-button")
-    .addEventListener("click", () => refreshCoverage());
 
   div.querySelector("#repeater-filter-select")
     .addEventListener("change", (e) => {
       repeaterRenderMode = e.target.value;
       renderNodes(nodes);
     });
+
+  div.querySelector("#repeater-search")
+    .addEventListener("input", (e) => {
+      repeaterSearch = e.target.value.toLowerCase();
+      renderNodes(nodes);
+  });
+  
+  div.querySelector("#refresh-map-button")
+    .addEventListener("click", () => refreshCoverage());
+
 
   // Don’t let clicks on the control bubble up and pan/zoom the map.
   L.DomEvent.disableClickPropagation(div);
@@ -129,6 +143,11 @@ function renderNodes(nodes) {
 
   // Index repeaters.
   nodes.repeaters.forEach(r => {
+    if (repeaterSearch !== '') {
+      if (!r.id.toLowerCase().startsWith(repeaterSearch))
+        return; // Skip nodes that don't match.
+    }
+
     const repeaterList = idToRepeaters.get(r.id) ?? [];
     repeaterList.push(r);
     idToRepeaters.set(r.id, repeaterList);
@@ -141,18 +160,19 @@ function renderNodes(nodes) {
   outEdges.forEach(edge => {
     const candidates = idToRepeaters.get(edge.id);
     if (candidates === undefined) {
-      console.log(`Missing repeater ${edge.id}`);
-    } else {
-      const from = edge.pos;
-      const nearest = getNearestRepeater(from, candidates);
-      const to = [nearest.lat, nearest.lon];
-      usedRepeaters.add(nearest);
-      L.polyline([from, to], { weight: 2, opacity: 0.8, dashArray: '1,6' }).addTo(edgeLayer);
+      //console.log(`Missing repeater ${edge.id}`);
+      return;
     }
+
+    const from = edge.pos;
+    const nearest = getNearestRepeater(from, candidates);
+    const to = [nearest.lat, nearest.lon];
+    usedRepeaters.add(nearest);
+    L.polyline([from, to], { weight: 2, opacity: 0.8, dashArray: '1,6' }).addTo(edgeLayer);
   });
 
   // Add repeaters.
-  const repeatersToAdd = showAll ? nodes.repeaters : usedRepeaters;
+  const repeatersToAdd = showAll ? [...idToRepeaters.values()].flat() : usedRepeaters;
   repeatersToAdd.forEach(r => {
     repeaterLayer.addLayer(repeaterMarker(r));
   });
