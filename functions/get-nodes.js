@@ -6,14 +6,18 @@ export async function onRequest(context) {
     repeaters:[]
   };
 
-  const samplesList = await sampleStore.list();
-  samplesList.keys.forEach(s => {
-    responseData.samples.push({
-      hash: s.name,
-      time: s.metadata.time,
-      path: s.metadata.path,
+  let cursor = null;
+  do {
+    const samplesList = await sampleStore.list({cursor: cursor});
+    cursor = samplesList.list_complete ? null : samplesList.cursor;
+    samplesList.keys.forEach(s => {
+      responseData.samples.push({
+        hash: s.name,
+        time: s.metadata.time,
+        path: s.metadata.path,
+      });
     });
-  });
+  } while (cursor !== null)
 
   const repeatersList = await repeaterStore.list();
   repeatersList.keys.forEach(r => {
