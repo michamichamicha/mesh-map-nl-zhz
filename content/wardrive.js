@@ -8,6 +8,7 @@ const deviceNameEl = $("deviceName");
 const channelInfoEl = $("channelInfo");
 const lastSampleInfoEl = $("lastSampleInfo");
 const controlsSection = $("controls");
+const ignoredRepeaterId = $("ignoredRepeaterId");
 const logBody = $("logBody");
 const debugConsole = $("debugConsole");
 
@@ -18,6 +19,7 @@ const autoToggleBtn = $("autoToggleBtn");
 const clearLogBtn = $("clearLogBtn");
 const intervalSelect = $("intervalSelect");
 const minDistanceSelect = $("minDistanceSelect");
+const ignoredRepeaterBtn = $("ignoredRepeaterBtn");
 
 const wardriveChannelName = "#wardrive";
 
@@ -39,6 +41,7 @@ function log(msg) {
 
 // --- State ---
 const LOG_KEY = "meshcoreWardriveLogV1";
+const IGNORED_ID_KEY = "meshcoreWardriveIgnoredIdV1"
 
 const state = {
   connection: null,
@@ -48,6 +51,7 @@ const state = {
   autoTimerId: null,
   lastSample: null, // { lat, lon, timestamp }
   wakeLock: null,
+  ignoredId: null, // Allows a repeater to be ignored.
   log: [],
 };
 
@@ -136,6 +140,39 @@ function updateLastSampleInfo() {
   const { lat, lon, timestamp } = state.lastSample;
   lastSampleInfoEl.textContent =
     `${lat.toFixed(4)}, ${lon.toFixed(4)} @ ` + formatIsoLocal(timestamp);
+}
+
+// --- Ignored Id ---
+function loadIgnoredId() {
+  try {
+    state.ignoredId = null;
+    const id = localStorage.getItem(IGNORED_ID_KEY);
+    state.ignoredId = id ? id : null;
+  } catch (e) {
+    console.warn("Failed to load ignored id", e);
+  }
+
+  updateIgnoreId();
+}
+
+function promptIgnoredId() {
+  const id = prompt("Enter repeater id to ignore.", state.ignoredId ?? '');
+
+  // Was prompt cancelled?
+  if (id === null)
+    return;
+
+  if (id && id.length !== 2) {
+    alert(`Invalid id '${id}'. Must be 2 hex digits.`);
+  }
+
+  state.ignoredId = id ? id : null;
+  localStorage.setItem(IGNORED_ID_KEY, id);
+  updateIgnoreId();
+}
+
+function updateIgnoreId() {
+  ignoredRepeaterId.innerText = state.ignoredId ?? "<none>";
 }
 
 // --- Geolocation ---
@@ -315,13 +352,14 @@ async function sendPing({ auto = false } = {}) {
     }
   }
 
-  const text = `${lat.toFixed(4)} ${lon.toFixed(4)}`;
+  let text = `${lat.toFixed(4)} ${lon.toFixed(4)}`;
+  if (state.ignoredId !== null) text += ` ${state.ignoredId}`;
   let sentToMesh = false;
   let sentToService = false;
   let notes = "";
 
   try {
-    // Send mesh message: "<lat> <lon>".
+    // Send mesh message: "<lat> <lon> [<id>]".
     await state.connection.sendChannelTextMessage(channel.channelIdx, text);
     sentToMesh = true;
     log("Sent MeshCore wardrive ping:", text);
@@ -534,6 +572,8 @@ autoToggleBtn.addEventListener("click", async () => {
   }
 });
 
+ignoredRepeaterBtn.addEventListener("click", promptIgnoredId);
+
 clearLogBtn.addEventListener("click", () => {
   if (!confirm("Clear local wardrive log?")) return;
   state.log = [];
@@ -567,6 +607,7 @@ if ('bluetooth' in navigator) {
 
 export async function onLoad() {
   loadLog();
+  loadIgnoredId();
   updateLastSampleInfo();
   updateAutoButton();
 }
