@@ -3,7 +3,8 @@ import {
   centerPos,
   coverageKey,
   geo,
-  isValidLocation
+  isValidLocation,
+  maxDistanceMiles,
 } from "/content/shared.js";
 
 // --- DOM helpers ---
@@ -36,6 +37,7 @@ const map = L.map('map', {
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 15,
+  minZoom: 8,
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
@@ -49,8 +51,15 @@ const currentLocMarker = L.circleMarker([0, 0], {
   fillColor: "#69DBFE",
   fillOpacity: .9,
   className: "shadow-sm",
-  zIndexOffset: 1000, // Always on top.
-  pane: "markerPane"
+  pane: "tooltipPane"
+}).addTo(map);
+
+// Max radius circle.
+L.circle(centerPos, {
+  radius: maxDistanceMiles * 1609.34, // meters in mile.
+  color: '#a13139',
+  weight: 3,
+  fill: false
 }).addTo(map);
 
 // Map controls
@@ -75,7 +84,7 @@ mapControl.onAdd = m => {
       if (confirm("Clear ping history?")) {
         pingLayer.clearLayers();
         state.pings = [];
-        // TODO: localstorage
+        savePingHistory();
       }
     });
 
@@ -105,7 +114,7 @@ function log(msg) {
 }
 
 // --- State ---
-// TODO: store pings in local storage
+const PING_HISTORY_ID_KEY = "meshcoreWardrivePingHistoryV1"
 const IGNORED_ID_KEY = "meshcoreWardriveIgnoredIdV1"
 
 const state = {
@@ -185,7 +194,46 @@ function redrawCoverage() {
 }
 
 // --- Ping markers ---
-// TODO
+function loadPingHistory() {
+  try {
+    state.pings = [];
+    const data = localStorage.getItem(PING_HISTORY_ID_KEY);
+    state.pings = JSON.parse(data);
+  } catch (e) {
+    console.warn("Failed to load ping history", e);
+  }
+}
+
+function savePingHistory() {
+  try {
+    localStorage.setItem(PING_HISTORY_ID_KEY, JSON.stringify(state.pings));
+  } catch (e) {
+    console.warn("Failed to save ping history", e);
+  }
+}
+
+function addPingHistory(pos) {
+  addPingMarker(pos);
+  state.pings.push(pos);
+  savePingHistory();
+}
+
+function addPingMarker(pos) {
+  const pingMarker = L.circleMarker(pos, {
+    radius: 3,
+    weight: 1,
+    color: "white",
+    fillColor: "#B92FAE",
+    fillOpacity: .8,
+    pane: "markerPane"
+  });
+  pingLayer.addLayer(pingMarker);
+}
+
+function redrawPingHistory() {
+  pingLayer.clearLayers();
+  state.pings.forEach(addPingMarker);
+}
 
 // --- Ignored Id ---
 function loadIgnoredId() {
@@ -443,6 +491,7 @@ async function sendPing({ auto = false } = {}) {
   // but will be overwritten with the right value.
   mergeCoverage(tileId, { h: 0, a: refreshTileAge });
   addCoverageBox(tileId);
+  addPingHistory(pos);
 
   // Queue a tile update from the service.
   // The mesh+MQTT+service is pretty slow so give it a few seconds to process.
@@ -663,9 +712,11 @@ if ('bluetooth' in navigator) {
 
 export async function onLoad() {
   try {
+    loadPingHistory();
     loadIgnoredId();
     updateControlsForConnection(false);
     updateAutoButton();
+    redrawPingHistory();
 
     await refreshCoverage();
     redrawCoverage();
