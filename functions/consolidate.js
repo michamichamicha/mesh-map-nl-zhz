@@ -73,7 +73,7 @@ async function mergeCoverage(key, samples, store) {
 
   value.push(uberSample);
 
-  // Are there too many samples?
+  // Are there too many entries?
   if (value.length > MAX_SAMPLES_PER_COVERAGE) {
     // Sort and keep the N-newest.
     value = value.toSorted((a, b) => a.time - b.time).slice(-MAX_SAMPLES_PER_COVERAGE);
