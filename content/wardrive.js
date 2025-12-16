@@ -36,7 +36,7 @@ const map = L.map('map', {
   tap: false,
   zoomControl: false,
   doubleClickZoom: false
-}).setView(centerPos, 11);
+}).setView(centerPos, 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 15,
@@ -48,7 +48,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const pingLayer = L.layerGroup().addTo(map);
 const coverageLayer = L.layerGroup().addTo(map);
 const currentLocMarker = L.circleMarker([0, 0], {
-  radius: 5,
+  radius: 6,
   weight: 2,
   color: "white",
   fillColor: "#69DBFE",
@@ -254,11 +254,11 @@ function addPingMarker(ping) {
 
   const pos = posFromHash(ping.hash);
   const pingMarker = L.circleMarker(pos, {
-    radius: 4,
-    weight: 1,
+    radius: 5,
+    weight: 0.75,
     color: "white",
     fillColor: color,
-    fillOpacity: .75,
+    fillOpacity: 1,
     pane: "markerPane",
     className: "marker-shadow"
   });
