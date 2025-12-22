@@ -182,6 +182,17 @@ function escapeHtml(s) {
     .replaceAll('>', '&gt;');
 }
 
+function shortDateStr(d) {
+  return d.toLocaleString([], {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
 function getCoverageStyle(coverage) {
   const obsColor = '#398821'; // Observed - Green
   const hrdColor = '#FEAA2C'; // Heard - Orange
@@ -293,9 +304,9 @@ function coverageMarker(coverage) {
   const details = `
     <strong>${coverage.id}</strong><br/>
     Observed: ${coverage.obs} &middot; Heard: ${coverage.hrd} &middot; Lost: ${coverage.lost} (${(100 * obsRatio).toFixed(0)}%)<br/>
-    Updated: ${updateDate.toLocaleString()}
-    ${coverage.hrd ? `<br/>Last Heard: ${lastHeardDate.toLocaleString()}` : ''}
-    ${coverage.obs ? `<br/>Last Observed: ${lastObservedDate.toLocaleString()}` : ''}
+    Updated: ${shortDateStr(updateDate)}
+    ${coverage.hrd ? `<br/>Heard: ${shortDateStr(lastHeardDate)}` : ''}
+    ${coverage.obs ? `<br/>Observed: ${shortDateStr(lastObservedDate)}` : ''}
     ${coverage.rptr.size > 0 ? '<br/>Repeaters: ' + coverage.rptr.join(',') : ''}`;
 
   rect.coverage = coverage;
@@ -335,7 +346,7 @@ function sampleMarker(s) {
   const date = new Date(fromTruncatedTime(s.time));
   const details = `
     ${lat.toFixed(4)}, ${lon.toFixed(4)}<br/>
-    ${date.toLocaleString()}
+    ${shortDateStr(date)}
     ${s.snr && s.rssi ? `<br/>SNR:${s.snr}, RSSI:${s.rssi}` : ''}
     ${path.length === 0 ? '' : '<br/>Hit: ' + path.join(',')}`;
   marker.bindPopup(details, { maxWidth: 320 });
@@ -357,7 +368,7 @@ function repeaterMarker(r) {
   const details = [
     `<strong>${escapeHtml(r.name)} [${r.id}]</strong>`,
     `${r.lat.toFixed(4)}, ${r.lon.toFixed(4)} · <em>${(r.elev).toFixed(0)}m</em>`,
-    `${new Date(time).toLocaleString()}`
+    `${shortDateStr(new Date(time))}`
   ].join('<br/>');
   const marker = L.marker([r.lat, r.lon], { icon: icon });
 
