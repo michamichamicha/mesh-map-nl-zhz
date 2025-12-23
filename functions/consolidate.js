@@ -43,14 +43,14 @@ function consolidateSamples(samples, cutoffTime) {
       uberSample.lastObserved = Math.max(s.time, uberSample.lastObserved);
     }
 
-    if (s.observed || s.repeaters.length > 0) {
+    const repeaters = JSON.parse(s.repeaters);
+    if (s.observed || repeaters.length > 0) {
       uberSample.heard++;
       uberSample.lastHeard = Math.max(s.time, uberSample.lastHeard);
     } else {
       uberSample.lost++;
     }
 
-    const repeaters = JSON.parse(s.repeaters);
     repeaters.forEach(p => {
       if (!uberSample.repeaters.includes(p))
         uberSample.repeaters.push(p);
@@ -168,7 +168,7 @@ export async function onRequest(context) {
     util.pushMap(hashToSamples, key, s);
   });
   console.log(`Coverage to update:${hashToSamples.size}`);
-  result.coverage_to_update = hashToSamples.size
+  result.coverage_to_update = hashToSamples.size;
 
   const mergedKeys = [];
   let mergeCount = 0;
@@ -199,7 +199,7 @@ export async function onRequest(context) {
         .prepare("INSERT INTO sample_archive (time, data) VALUES (?, ?)")
         .bind(now, JSON.stringify(sample)));
       cleanupStmts.push(context.env.DB
-        .prepare("DELETE FROM samples WHERE hash == ?")
+        .prepare("DELETE FROM samples WHERE hash = ?")
         .bind(sample.hash));
     }
   });

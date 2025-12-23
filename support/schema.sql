@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS samples (
   observed  INTEGER NOT NULL DEFAULT 0 CHECK (observed IN (0, 1)),
   repeaters TEXT NOT NULL DEFAULT '[]'
 );
+CREATE INDEX IF NOT EXISTS idx_samples_time ON samples(time);
 
 CREATE TABLE IF NOT EXISTS sample_archive (
   id   INTEGER PRIMARY KEY AUTOINCREMENT,

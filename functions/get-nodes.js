@@ -46,8 +46,7 @@ export async function onRequest(context) {
   // Samples
   // TODO: merge samples into coverage server-side?
   const { results: samples } = await context.env.DB
-    .prepare("SELECT * FROM samples").run();
-  console.log(samples);
+    .prepare("SELECT * FROM samples").all();
   samples.forEach(s => {
     const path = JSON.parse(s.repeaters);
     const item = {

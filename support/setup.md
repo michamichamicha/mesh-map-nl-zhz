@@ -66,18 +66,18 @@ You also need a GitHub account. The app is automatically deployed from the main 
     1) mesh-map-repeaters
     2) mesh-map-coverage
     3) `npx wrangler kv namespace list` -- to get your UUIDs.
-4) Each of the KV namespaces will have an id. Update the wrangler.jsonc with the actual id for each namespace.
+5) Each of the KV namespaces will have an id. Update the wrangler.jsonc with the actual id for each namespace.
 Leave the binding names alone. Those are the names used in the code.
-5) Create the tables in the DB.
+6) Create the tables in the DB.
     1) `npx wrangler d1 execute mesh-map --file=./support/schema.sql --remote`
     2) If you're running locally, you'll need to do without `--remote` to set up the local DB too. 
-6) Change the host in functions/slurp to your host. This is kind of optional because
+7) Change the host in functions/slurp to your host. This is kind of optional because
 'slurp' is only used to pull service data locally for local testing.
-7) There are some hard coded constants in content/shared_npm.js that need to be updated.
+8) There are some hard coded constants in content/shared_npm.js that need to be updated.
     * centerPos - the center of your map.
     * maxDistanceMiles - how far out you want to consider "in" your region.
     * Use `npx esbuild content/shared_npm.js --bundle --format=esm --outfile=content/shared.js` to regen the samples.js bundle.
-8) Commit your changes to git and push. Cloudflare should pick up your changes
+9) Commit your changes to git and push. Cloudflare should pick up your changes
 and deploy to your Pages app.
 
 ### Migration
@@ -88,7 +88,7 @@ It will return a JSON blob like this:
 ```
 {"archive_has_more":true,"archive_insert_time":1766523554091,"archive_migrated":500}
 ```
-You if it says `has_more: true` then you will need to wait around 10 seconds and run it again. Repeat this (YOU MUST WAIT BETWEEN CALLS) until `has_more` is false.
+If it says `has_more: true`, then you will need to wait around 10 seconds and run it again. Repeat this (YOU MUST WAIT BETWEEN CALLS) until `has_more` is false.
 
 1) Migrate samples - browse to /db-migrate?op=samples
 2) Migrate archive - browse to /db-migrate?op=archive

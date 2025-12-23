@@ -42,7 +42,7 @@ export async function onRequest(context) {
           )
         )
     `)
-    .bind(key, time, rssi, snr, observed, JSON.stringify(path))
+    .bind(key, time, rssi, snr, observed ? 1 : 0, JSON.stringify(path))
     .run();
 
   return new Response('OK');

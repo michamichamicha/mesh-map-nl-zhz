@@ -25,11 +25,11 @@ export async function onRequest(context) {
         util.fromTruncatedTime(s.time),
         s.rssi ?? null,
         s.snr ?? null,
-        s.obs,
+        s.obs ? 1 : 0,
         JSON.stringify(s.path ?? [])
       );
   });
-  context.env.DB.batch(sampleInsertStmts);
+  await context.env.DB.batch(sampleInsertStmts);
   result.imported_samples = sampleInsertStmts.length;
 
   const repeaterStore = context.env.REPEATERS;
