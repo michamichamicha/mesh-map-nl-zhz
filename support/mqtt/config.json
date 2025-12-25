@@ -6,8 +6,8 @@
   "mqtt_topic": "meshcore/SEA/+/packets",
 
   "service_host": "https://<service-host>.pages.dev",
-  "center_position": [47.7776, -122.4247],
-  "valid_dist": 60,
+  "center_position": [47.6205, -122.3494],
+  "valid_dist": 100,
 
   "channel_hash": "e0",
   "channel_secret": "4076c315c1ef385fa93f066027320fe5",

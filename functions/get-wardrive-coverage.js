@@ -25,29 +25,20 @@ function addItem(map, id, observed, heard, time) {
 }
 
 export async function onRequest(context) {
-  const coverageStore = context.env.COVERAGE;
-  const url = new URL(context.request.url);
-  const prefix = url.searchParams.get('p');
   const tiles = new Map();
   let cursor = null;
 
-  do {
-    const coverage = await coverageStore.list({ prefix: prefix, cursor: cursor });
-    cursor = coverage.cursor ?? null;
-    coverage.keys.forEach(c => {
-      const id = c.name;
-      const observed = (c.metadata.observed ?? c.metadata.heard) > 0;
-      const heard = c.metadata.heard > 0;
-      const updatedTime = c.metadata.updated ?? c.metadata.lastHeard;
-      addItem(tiles, id, observed, heard, updatedTime);
-    });
-  } while (cursor !== null)
+  const { results: coverage } = await context.env.DB
+    .prepare("SELECT hash, time, observed, heard FROM coverage").all();
+  coverage.forEach(c => {
+    addItem(tiles, c.hash, c.observed, c.heard, c.time);
+  });
 
   const { results: samples } = await context.env.DB
     .prepare("SELECT hash, time, repeaters, observed FROM samples").all();
   samples.forEach(s => {
     const id = s.hash.substring(0, 6);
-    const path = JSON.parse(s.repeaters);
+    const path = JSON.parse(s.repeaters || '[]');
     const observed = s.observed;
     const heard = path.length > 0;
     const time = s.time;

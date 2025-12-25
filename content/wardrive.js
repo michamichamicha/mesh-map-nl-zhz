@@ -169,10 +169,9 @@ function mergeCoverage(id, value) {
   prev.a = Math.min(value.a, prev.a);
 }
 
-async function refreshCoverage(tileId = null) {
+async function refreshCoverage() {
   try {
     let url = "/get-wardrive-coverage";
-    if (tileId) url += `?p=${tileId}`;
     const resp = await fetch(url);
     const coverage = (await resp.json()) ?? [];
     log(`Got ${coverage.length} coverage tiles from service.`);
@@ -244,7 +243,7 @@ function loadPingHistory() {
   try {
     state.pings = [];
     const data = localStorage.getItem(PING_HISTORY_ID_KEY);
-    state.pings = JSON.parse(data) ?? [];
+    state.pings = JSON.parse(data || '[]');
 
     // Upgrade ping data if needed.
     if (state.pings.length > 0 && !state.pings[0].hasOwnProperty("hash")) {
@@ -612,7 +611,7 @@ async function sendPing({ auto = false } = {}) {
     const ping = { hash: sampleId };
 
     if (sample) {
-      const repeaters = JSON.parse(sample.repeaters) ?? [];
+      const repeaters = JSON.parse(sample.repeaters || '[]');
       ping.observed = sample.observed;
       ping.heard = repeaters.length > 0;
       mergeCoverage(tileId, {

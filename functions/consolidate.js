@@ -43,7 +43,7 @@ function consolidateSamples(samples, cutoffTime) {
       uberSample.lastObserved = Math.max(s.time, uberSample.lastObserved);
     }
 
-    const repeaters = JSON.parse(s.repeaters);
+    const repeaters = JSON.parse(s.repeaters || '[]');
     if (s.observed || repeaters.length > 0) {
       uberSample.heard++;
       uberSample.lastHeard = Math.max(s.time, uberSample.lastHeard);
@@ -66,79 +66,76 @@ function consolidateSamples(samples, cutoffTime) {
 }
 
 // Merge the new coverage data with the previous (if any).
-async function mergeCoverage(key, samples, store) {
+async function mergeCoverage(key, samples, DB) {
   // Get existing coverage entry (or defaults).
-  const entry = await store.getWithMetadata(key, "json");
-  const prevRepeaters = entry?.metadata?.hitRepeaters ?? [];
-  const prevUpdated = entry?.metadata?.updated ?? 0;
-  let value = entry?.value ?? [];
+
+  const row = await DB
+    .prepare("SELECT * FROM coverage WHERE hash = ?")
+    .bind(key).first();
+
+  const prevRepeaters = JSON.parse(row?.repeaters || '[]');
+  const prevUpdated = row?.time ?? 0;
+  let entries = JSON.parse(row?.entries || '[]');
 
   const uberSample = consolidateSamples(samples, prevUpdated);
   if (uberSample === null)
     return;
 
-  // Migrate existing values to newest format.
-  value.forEach(v => {
-    // An older version saved 'time' as a string. Yuck.
-    v.time = Number(v.time);
-
-    if (v.heard === undefined) {
-      const wasHeard = v.path?.length > 0;
-      v.heard = wasHeard ? 1 : 0;
-      v.lost = wasHeard ? 0 : 1;
-      v.lastHeard = wasHeard ? v.time : 0;
-      v.repeaters = v.path;
-      delete v.path;
-    }
-
-    if (v.observed === undefined) {
-      // All previously "heard" entries were observed.
-      v.observed = v.heard;
-      v.snr = null;
-      v.rssi = null;
-      v.lastObserved = v.lastHeard;
-    }
-  });
-
-  value.push(uberSample);
+  entries.push(uberSample);
 
   // Are there too many entries?
-  if (value.length > MAX_SAMPLES_PER_COVERAGE) {
-    // Sort and keep the N-newest.
-    value = value.toSorted((a, b) => a.time - b.time).slice(-MAX_SAMPLES_PER_COVERAGE);
+  if (entries.length > MAX_SAMPLES_PER_COVERAGE) {
+    // Sort and keep the N-newest entries.
+    entries = entries.toSorted((a, b) => a.time - b.time).slice(-MAX_SAMPLES_PER_COVERAGE);
   }
 
-  // Compute new metadata stats, but keep the existing repeater list (for now).
-  const metadata = {
+  // Compute new stats, but keep the existing repeater list (for now).
+  const updatedRow = {
+    hash: key,
+    time: uberSample.time,
+    lastObserved: 0,
+    lastHeard: 0,
     observed: 0,
     heard: 0,
     lost: 0,
-    snr: null,
     rssi: null,
-    lastObserved: 0,
-    lastHeard: 0,
-    updated: uberSample.time,
-    hitRepeaters: []
+    snr: null,
+    repeaters: [],
+    entries: entries,
   };
   const repeaterSet = new Set(prevRepeaters);
-  value.forEach(v => {
-    metadata.observed += v.observed;
-    metadata.heard += v.heard;
-    metadata.lost += v.lost;
-    metadata.snr = util.definedOr(Math.max, metadata.snr, v.snr);
-    metadata.rssi = util.definedOr(Math.max, metadata.rssi, v.rssi);
-    metadata.lastObserved = Math.max(metadata.lastObserved, v.lastObserved);
-    metadata.lastHeard = Math.max(metadata.lastHeard, v.lastHeard);
-    v.repeaters.forEach(r => repeaterSet.add(r.toLowerCase()));
+  entries.forEach(e => {
+    updatedRow.lastObserved = Math.max(updatedRow.lastObserved, e.lastObserved);
+    updatedRow.lastHeard = Math.max(updatedRow.lastHeard, e.lastHeard);
+    updatedRow.observed += e.observed;
+    updatedRow.heard += e.heard;
+    updatedRow.lost += e.lost;
+    updatedRow.rssi = util.definedOr(Math.max, updatedRow.rssi, e.rssi);
+    updatedRow.snr = util.definedOr(Math.max, updatedRow.snr, e.snr);
+    e.repeaters.forEach(r => repeaterSet.add(r.toLowerCase()));
   });
-  metadata.hitRepeaters = [...repeaterSet];
+  updatedRow.repeaters = [...repeaterSet];
 
-  await store.put(key, JSON.stringify(value), { metadata: metadata });
+  await DB.prepare(`
+    INSERT OR REPLACE INTO coverage
+      (hash, time, lastObserved, lastHeard, observed, heard, lost, rssi, snr, repeaters, entries)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      updatedRow.hash,
+      updatedRow.time,
+      updatedRow.lastObserved,
+      updatedRow.lastHeard,
+      updatedRow.observed,
+      updatedRow.heard,
+      updatedRow.lost,
+      updatedRow.rssi,
+      updatedRow.snr,
+      JSON.stringify(updatedRow.repeaters),
+      JSON.stringify(updatedRow.entries)
+    ).run();
 }
 
 export async function onRequest(context) {
-  const coverageStore = context.env.COVERAGE;
-
   const url = new URL(context.request.url);
   let maxAge = url.searchParams.get('maxAge') ?? DEF_CONSOLIDATE_AGE; // Days
   if (maxAge <= 0)
@@ -175,12 +172,13 @@ export async function onRequest(context) {
 
   // Merge old samples into coverage items.
   for (const [k, v] of hashToSamples.entries()) {
-    // To prevent hitting KV limits, only handle first N.
-    if (++mergeCount > 500)
+    // To prevent hitting request limit, only handle first N.
+    // Merge is one Read/Write per call.
+    if (++mergeCount > 300)
       break;
 
     try {
-      await mergeCoverage(k, v, coverageStore);
+      await mergeCoverage(k, v, context.env.DB);
       result.merged_ok++;
       mergedKeys.push(k);
     } catch (e) {

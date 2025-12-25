@@ -17,7 +17,7 @@ already have this infrastructure set up for you mesh, you have to start there.
     1) It _is_ possible to run this using your own radio as a makeshift observer, but
     only if that radio is in a location that would be considered "central" to your mesh.
     2) For the PNW mesh, this uses the MQTT feed hosted [here](https://analyzer.letsme.sh/about).
-2) The backend service. This is a Cloudflare Pages app that uses D1 and KV for storage. This
+2) The backend service. This is a Cloudflare Pages app that uses D1 for storage. This
 is reasonably easy to set up and you can get started for free to test things out. You
 will absolutely need a paid subscription if you want others to contribute. It's $5/month.
 3) Batch script. This runs hourly to consolidate Samples into Coverage and perform other
@@ -60,27 +60,24 @@ You also need a GitHub account. The app is automatically deployed from the main 
 3) Create the required D1 database (use wrangler or the UI).
     1) `npx wrangler d1 create mesh-map`
     2) `npx wrangler d1 list` -- note the UUID.
-    3) Update wrangler.jsonc with your database id (and name if you used a different one).
-    4) You can use wrangler or the UI to execute queries against your data.
-4) Create the required KV namespaces (use wrangler or the UI). NOTE: the project is migrating away from KV.
-    1) mesh-map-coverage
-    2) `npx wrangler kv namespace list` -- to get your UUID.
-5) Each of the KV namespaces will have an id. Update the wrangler.jsonc with the actual id for each namespace.
+    3) You can use wrangler or the UI to execute queries against your data.
+4) Update the wrangler.jsonc with the actual id and name for your database.
 Leave the binding names alone. Those are the names used in the code.
-6) Create the tables in the DB.
+5) Create the tables in the DB.
     1) `npx wrangler d1 execute mesh-map --file=./support/schema.sql --remote`
     2) If you're running locally, you'll need to do without `--remote` to set up the local DB too. 
-7) Change the host in functions/slurp to your host. This is kind of optional because
+6) Change the host in functions/slurp to your host. This is kind of optional because
 'slurp' is only used to pull service data locally for local testing.
-8) There are some hard coded constants in content/shared_npm.js that need to be updated.
+7) There are some hard coded constants in content/shared_npm.js that need to be updated.
     * centerPos - the center of your map.
     * maxDistanceMiles - how far out you want to consider "in" your region.
     * Use `npx esbuild content/shared_npm.js --bundle --format=esm --outfile=content/shared.js` to regen the samples.js bundle.
-9) Commit your changes to git and push. Cloudflare should pick up your changes
+8) Commit your changes to git and push. Cloudflare should pick up your changes
 and deploy to your Pages app.
 
 ### Migration
-If you have data in the samples and samples_archive KV namespaces, you can migrate your existing data into the database. This assumes you still have the bindings for SAMPLES and ARCHIVE in your wrangler.jsonc.
+If you have data in KV namespaces (previously used), you can migrate your existing data into the database.
+This assumes you still have the bindings for COVERAGE, REPEATERS, SAMPLES, and ARCHIVE in your wrangler.jsonc.
 
 The general process here is browse to the migration function.
 It will return a JSON blob like this:
@@ -89,11 +86,19 @@ It will return a JSON blob like this:
 ```
 If it says `has_more: true`, then you will need to wait around 10 seconds and run it again. Repeat this (YOU MUST WAIT BETWEEN CALLS) until `has_more` is false.
 
-2) Migrate repeaters - browse to /db-migrate?op=repeaters
-1) Migrate samples - browse to /db-migrate?op=samples
-2) Migrate archive - browse to /db-migrate?op=archive
+1) Migrate repeaters - browse to /db-migrate?op=repeaters
+2) Migrate samples - browse to /db-migrate?op=samples
+3) Migrate archive - browse to /db-migrate?op=archive
 
-Once you have migrated, you can remove the REPEATERS, SAMPLES, and ARCHIVE bindings from wrangler.jsonc and commit.
+> **MIGRATING COVERAGE IS DIFFERENT** 
+BEFORE YOU START, DISABLE THE MAINTENANCE SCRIPT!
+1) Migrate coverage metadata - browse to /db-migrate?op=coverage-1
+    1) This should be pretty quick and once this is done, your map should work again.
+2) Migrate coverage data - browse to /db-migrate?op=coverage-2
+    1) This will happen in batches. Re-run until you no longer see `has_more`. You don't have to wait in between calls, but only make one request at a time.
+3) Re-enable the maintenance script when you're done.
+
+Once you have migrated, you can remove the KV bindings from wrangler.jsonc and commit.
 
 ## MQTT Client
 Under the support/mqtt folder are the scripts that you need to run somewhere. Get a Linux

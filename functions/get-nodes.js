@@ -3,7 +3,6 @@
 import * as util from '../content/shared.js';
 
 export async function onRequest(context) {
-  const coverageStore = context.env.COVERAGE;
   const responseData = {
     coverage: [],
     samples: [],
@@ -11,43 +10,38 @@ export async function onRequest(context) {
   };
 
   // Coverage
-  let cursor = null;
-  do {
-    const coverageList = await coverageStore.list({ cursor: cursor });
-    cursor = coverageList.cursor ?? null;
-    coverageList.keys.forEach(c => {
-      const lastHeard = c.metadata.heard ? c.metadata.lastHeard : 0;
-      const updated = c.metadata.updated ?? lastHeard;
-      const lastObserved = c.metadata.lastObserved ?? lastHeard;
+  const { results: coverage } = await context.env.DB
+    .prepare(`
+      SELECT hash, time, lastObserved, lastHeard, observed,
+        heard, lost, rssi, snr, repeaters FROM coverage`).all();
+  coverage.forEach(c => {
+    const rptr = JSON.parse(c.repeaters || '[]');
+    const item = {
+      id: c.hash,
+      obs: c.observed,
+      hrd: c.heard,
+      lost: c.lost,
+      ut: util.truncateTime(c.time),
+      lot: util.truncateTime(c.lastObserved),
+      lht: util.truncateTime(c.lastHeard),
+    };
 
-      const item = {
-        id: c.name,
-        obs: c.metadata.observed ?? c.metadata.heard ?? 0,
-        hrd: c.metadata.heard ?? 0,
-        lost: c.metadata.lost ?? 0,
-        ut: util.truncateTime(updated),
-        lht: util.truncateTime(lastHeard),
-        lot: util.truncateTime(lastObserved),
-      };
+    // Don't send empty values.
+    if (rptr.length > 0) {
+      item.rptr = rptr
+    };
+    if (c.snr != null) item.snr = c.snr;
+    if (c.rssi != null) item.rssi = c.rssi;
 
-      // Don't send empty vales.
-      const repeaters = c.metadata.hitRepeaters ?? [];
-      if (repeaters.length > 0) {
-        item.rptr = repeaters
-      };
-      if (c.metadata.snr) item.snr = c.metadata.snr;
-      if (c.metadata.rssi) item.rssi = c.metadata.rssi;
-
-      responseData.coverage.push(item);
-    });
-  } while (cursor !== null)
+    responseData.coverage.push(item);
+  });
 
   // Samples
   // TODO: merge samples into coverage server-side?
   const { results: samples } = await context.env.DB
     .prepare("SELECT * FROM samples").all();
   samples.forEach(s => {
-    const path = JSON.parse(s.repeaters);
+    const path = JSON.parse(s.repeaters || '[]');
     const item = {
       id: s.hash,
       time: util.truncateTime(s.time ?? 0),

@@ -1,30 +1,6 @@
 import * as util from '../content/shared.js';
 
-async function deleteOutOfRange(store, hash) {
-  const pos = util.posFromHash(hash);
-  if (!util.isValidLocation(pos)) {
-    console.log(`Coverage ${hash} is out of range`);
-    await store.delete(hash);
-    return 1;
-  }
-
-  return 0;
-}
-
 async function cleanCoverage(context, result) {
-  const store = context.env.COVERAGE;
-  let cursor = null;
-
-  result.coverage_out_of_range = 0;
-
-  do {
-    const coverage = await store.list({ cursor: cursor });
-    cursor = coverage.cursor ?? null;
-
-    for (const key of coverage.keys) {
-      result.coverage_out_of_range += await deleteOutOfRange(store, key.name);
-    }
-  } while (cursor !== null);
 }
 
 async function cleanSamples(context, result) {
