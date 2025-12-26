@@ -3,6 +3,7 @@
 --DROP TABLE IF EXISTS sample_archive;
 --DROP TABLE IF EXISTS repeaters;
 --DROP TABLE IF EXISTS coverage;
+--DROP TABLE IF EXISTS senders;
 
 CREATE TABLE IF NOT EXISTS samples (
   hash TEXT PRIMARY KEY,
@@ -44,3 +45,13 @@ CREATE TABLE IF NOT EXISTS coverage (
   entries TEXT NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS idx_coverage_time ON coverage(time);
+
+CREATE TABLE IF NOT EXISTS senders (
+  hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  time INTEGER NOT NULL,
+  PRIMARY KEY (hash, name, time)
+);
+CREATE INDEX IF NOT EXISTS idx_senders_hash ON senders(hash);
+CREATE INDEX IF NOT EXISTS idx_senders_name ON senders(name);
+CREATE INDEX IF NOT EXISTS idx_senders_time ON senders(time);

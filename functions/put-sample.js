@@ -1,4 +1,5 @@
 import {
+  geohash6,
   geohash8,
   parseLocation
 } from '../content/shared.js'
@@ -15,6 +16,7 @@ export async function onRequest(context) {
   const snr = data.snr ?? null;
   const path = (data.path ?? []).map(p => p.toLowerCase());
   const observed = data.observed ?? false;
+  const sender = data.sender ?? null
 
   await context.env.DB
     .prepare(`
@@ -43,6 +45,14 @@ export async function onRequest(context) {
     `)
     .bind(hash, time, rssi, snr, observed ? 1 : 0, JSON.stringify(path))
     .run();
+
+  if (sender) {
+    const todayStart = (new Date()).setHours(0, 0, 0, 0);
+    await context.env.DB
+      .prepare("INSERT OR IGNORE INTO senders (hash, name, time) VALUES (?, ?, ?)")
+      .bind(geohash6(lat, lon), sender.substring(0, 32), todayStart)
+      .run();
+  }
 
   return new Response('OK');
 }

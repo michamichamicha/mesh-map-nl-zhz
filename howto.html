@@ -104,11 +104,17 @@
     <ul class="mb-2 pl-4 text-sm list-disc">
       <li>You must allow access to Bluetooth and Location in your browser.</li>
       <li>Your companion radio must add the #wardrive channel. The app will help with that.</li>
-      <li>It does not work in Safari.
+      <li>It does not work in Safari or most vendor-modded Android browsers.
         <ul class="pl-4 text-sm list-disc">
-          <li>On Macos, use Edge or Chrome.</li>
+          <li>On Macos use Edge or Chrome.</li>
           <li>On iOS, use the <a class="underline text-sky-300" target="_blank"
-              href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055">Bluefy app</a></li>
+              href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055">Bluefy app</a>
+          </li>
+          <li>On Android use <a class="underline text-sky-300" target="_blank"
+              href="https://play.google.com/store/apps/details?id=com.microsoft.emmx">Edge</a>
+            or <a class="underline text-sky-300" target="_blank"
+              href="https://play.google.com/store/apps/details?id=com.android.chrome">Chrome</a>.
+          </li>
         </ul>
       </li>
       <li>You have to disconnect from the MeshCore app in order to connect to your radio. BLE only allows one
@@ -144,6 +150,7 @@
     The only thing the service stores is the location you send to #wardrive and the id of the 1st hop repeater.
     The web app sends your location to #wardrive and to the service. That's it. Logging on the web app is stored
     locally. You will be sending your companion radio's name with your location to #wardrive which is a public channel.
+    <b>Optionally</b>, if you want to participate in the leaderboard, you can choose to send your radio name with pings.
   </div>
 
 </body>
