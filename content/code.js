@@ -329,7 +329,7 @@ function getCoverageStyle(coverage) {
       } else {
         style.color = combined > 0 ? obsColor : missColor;
         style.opacity = 0.3;
-        style.fillOpacity = clamp(combined, 0.1, 0.9);
+        style.fillOpacity = clamp(Math.abs(combined), 0.1, 0.9);
       }
       break;
     }
