@@ -337,11 +337,16 @@ function getCoverageStyle(coverage) {
     case 'observedPct': {
       const sampleCount = coverage.obs + coverage.lost;
       const observedPercent = coverage.obs / sampleCount;
-      if (useColorScale) {
-        style.color = getColorForValue(observedPercent);
+      if (observedPercent > 0) {
+        if (useColorScale) {
+          style.color = getColorForValue(observedPercent);
+        } else {
+          style.opacity = 0.5;
+          style.fillOpacity = clamp(observedPercent, 0.1, 0.9);
+        }
       } else {
-        style.opacity = 0.5;
-        style.fillOpacity = clamp(observedPercent, 0.1, 0.9);
+        style.opacity = 0.1;
+        style.fillOpacity = 0.1;
       }
       break;
     }
@@ -349,11 +354,16 @@ function getCoverageStyle(coverage) {
     case 'heardPct': {
       const sampleCount = coverage.hrd + coverage.lost;
       const heardPercent = coverage.hrd / sampleCount;
-      if (useColorScale) {
-        style.color = getColorForValue(heardPercent);
+      if (heardPercent > 0) {
+        if (useColorScale) {
+          style.color = getColorForValue(heardPercent);
+        } else {
+          style.opacity = 0.5;
+          style.fillOpacity = clamp(heardPercent, 0.1, 0.9);
+        }
       } else {
-        style.opacity = 0.5;
-        style.fillOpacity = clamp(heardPercent, 0.1, 0.9);
+        style.opacity = 0.1;
+        style.fillOpacity = 0.1;
       }
       break;
     }
