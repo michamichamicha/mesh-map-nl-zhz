@@ -7,5 +7,6 @@ export async function onRequest(context) {
     .bind(`${prefix}%`)
     .all()
 
+  results.forEach(r => { r.repeaters = JSON.parse(r.repeaters); });
   return Response.json(results);
 }

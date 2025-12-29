@@ -593,6 +593,10 @@ async function sendPing({ auto = false } = {}) {
   if (state.ignoredId !== null) text += ` ${state.ignoredId}`;
 
   try {
+    // Don't need to send an rx-sample for this tile because
+    // this sends a normal sample with the same data.
+    pushRxHistory(tileId);
+
     // Send mesh message: "<lat> <lon> [<id>]".
     await state.connection.sendChannelTextMessage(state.channel.channelIdx, text);
     log("Sent MeshCore wardrive ping:", text);
@@ -639,18 +643,18 @@ async function sendPing({ auto = false } = {}) {
   }
 
   // Update the tile state immediately.
-  // Setting "age" to the cutoff so it stops getting pinged.
+  // Set "age" to the cutoff so it stops getting pinged.
   const heard = repeat?.repeater !== undefined;
   mergeCoverage(tileId, { o: 0, h: heard ? 1 : 0, a: refreshTileAge });
 
-  // Queue fetching the sample from the service to update the UI.
+  // Enqueue fetching the sample from the service to update the UI.
   // The mesh+MQTT+service can be pretty slow so give it a few seconds to process.
   setTimeout(async () => {
     const sample = await getSample(sampleId);
     const ping = { hash: sampleId };
 
     if (sample) {
-      const repeaters = JSON.parse(sample.repeaters || '[]');
+      const repeaters = sample.repeaters;
       ping.observed = sample.observed;
       ping.heard = repeaters.length > 0;
       mergeCoverage(tileId, {
@@ -832,6 +836,14 @@ function onDisconnected() {
 }
 
 // --- RX log handling ---
+function pushRxHistory(hash) {
+  // Add and keep the most recent 10. This goal is to prevent the
+  // client from spamming a single tile, but also allow it to
+  // eventually submit new samples after moving or refreshing.
+  state.rxHistory.push(hash);
+  state.rxHistory = state.rxHistory.slice(-10);
+}
+
 async function trySendRxSample(packet, lastSnr, lastRssi) {
   // The RX data is not interesting if someone is using a mobile repeater
   // because the last hop signal is always going to look really good.
@@ -855,7 +867,7 @@ async function trySendRxSample(packet, lastSnr, lastRssi) {
   }
   const hash = geohash6(lat, lon);
 
-  // Already sent?
+  // Does this tile need a sample?
   if (state.rxHistory.includes(hash))
     return;
 
@@ -885,9 +897,7 @@ async function trySendRxSample(packet, lastSnr, lastRssi) {
       body: dataStr,
     });
 
-    // Add and keep the most recent 50.
-    state.rxHistory.push(hash);
-    state.rxHistory = state.rxHistory.slice(-50);
+    pushRxHistory(hash);
   } catch (e) {
     console.error("RxSample: Service POST failed", e);
   }

@@ -3,14 +3,14 @@ import {
   centerPos,
   clamp,
   definedOr,
+  fromTruncatedTime,
   geo,
   haversineMiles,
   lerp,
   maxDistanceMiles,
   posFromHash,
   pushMap,
-  sigmoid,
-  fromTruncatedTime,
+  sigmoid
 } from './shared.js'
 
 // Global Init
@@ -69,6 +69,7 @@ mapControl.onAdd = m => {
             <option value="pastDay" title="Tiles updated in the past 1 day">Past Day</option>
             <option value="repeaterCount" title="Higher indicates more repeaters">Repeater Count</option>
             <option value="sampleCount" title="Higher indicates more samples">Sample Count</option>
+            <option value="rxLogRssi" title="RSSI normalized as percentage, RxLog data">Passive RxLog RSSI</option>
           </select>
         </label>
       </div>
@@ -126,9 +127,9 @@ mapControl.onAdd = m => {
     });
 
   div.querySelector("#coverage-colormode-select")
-    .addEventListener("change", (e) => {
+    .addEventListener("change", async (e) => {
       coloringMode = e.target.value;
-      renderNodes(nodes);
+      await redrawMap();
     });
 
   div.querySelector("#repeater-filter-select")
@@ -153,7 +154,7 @@ mapControl.onAdd = m => {
     .addEventListener("click", () => refreshCoverage());
 
   div.querySelector("#use-colorscale")
-    .addEventListener("change", (e) => {
+    .addEventListener("change", async (e) => {
       const colorScaleEl = document.getElementById("color-scale");
       useColorScale = e.target.checked;
 
@@ -164,7 +165,7 @@ mapControl.onAdd = m => {
         colorScaleEl.classList.add("hidden");
         colorScaleEl.classList.remove("mesh-control-row");
       }
-      renderNodes(nodes);
+      await redrawMap();
     });
 
 
@@ -400,10 +401,11 @@ function getCoverageStyle(coverage) {
       break;
     }
 
+    case 'rxLogRssi':
     case 'byRssi': {
       if (coverage.rssi != null) {
         if (useColorScale) {
-          style.color = getColorForValue(lerp(coverage.rssi, -100, -40));
+          style.color = getColorForValue(lerp(coverage.rssi, -120, -40));
           style.fillOpacity = 0.85;
         } else {
           // Normalize to about [-1, 1], centered on -80
@@ -481,10 +483,32 @@ function getCoverageStyle(coverage) {
         style.fillOpacity = Math.min(0.9, sigmoid(sampleCount, 0.5, 3));
       }
     }
+
     default: break;
   }
 
   return style;
+}
+
+function rxCoverageMarker(c) {
+  const [minLat, minLon, maxLat, maxLon] = geo.decode_bbox(c.hash);
+  const updated = new Date(c.time);
+  const style = getCoverageStyle(c);
+  const rect = L.rectangle([[minLat, minLon], [maxLat, maxLon]], style);
+  const rptr = c.repeaters;
+  const details = `
+    <div><b>${c.hash}</b>
+    <span class="text-xs">${maxLat.toFixed(4)},${maxLon.toFixed(4)}</span></div>
+    <div>Samples: ${c.count}</div>
+    ${c.snr ? `<div>SNR: ${c.snr ?? '✕'} · RSSI: ${c.rssi ?? '✕'}</div>` : ''}
+    ${rptr.length > 0 ? `<div>Repeaters: ${rptr.join(', ')}</div>` : ''}
+    <div class="text-xs">
+    ${c.hrd ? `<div>Updated: ${shortDateStr(updated)}</div>` : ''}
+    </div>`;
+
+  rect.coverage = c;
+  rect.bindPopup(details, { maxWidth: 320 });
+  return rect;
 }
 
 function coverageMarker(c) {
@@ -503,7 +527,7 @@ function coverageMarker(c) {
     ${c.snr ? `<div>SNR: ${c.snr ?? '✕'} · RSSI: ${c.rssi ?? '✕'}</div>` : ''}
     ${c.rptr.length > 0 ? `<div>Repeaters: ${c.rptr.join(', ')}</div>` : ''}
     <div class="text-xs">
-    <div>Updated: ${shortDateStr(updateDate)}</div>
+    ${c.ut ? `<div>Updated: ${shortDateStr(updateDate)}</div>` : ''}
     ${c.hrd ? `<div>Heard: ${shortDateStr(lastHeardDate)}</div>` : ''}
     ${c.obs ? `<div>Observed: ${shortDateStr(lastObservedDate)}</div>` : ''}
     </div>`;
@@ -694,6 +718,41 @@ function updateAllEdgeVisibility(end, dimTiles = false) {
   coverageToHighlight.forEach(m => updateCoverageMarkerHighlight(m, { highlight: true }));
 }
 
+async function redrawMap() {
+  switch (coloringMode) {
+    case "rxLogRssi":
+      await renderPassive();
+      break;
+
+    default:
+      renderNodes(nodes);
+      break;
+    }
+}
+
+async function renderPassive() {
+  map.closePopup(); // Ensure pop-up handlers don't fire while updating.
+  coverageLayer.clearLayers();
+  edgeLayer.clearLayers();
+  sampleLayer.clearLayers();
+  repeaterLayer.clearLayers();
+
+  let coverage = [];
+
+  try {
+    const resp = await fetch("/get-rx-samples");
+    coverage = (await resp.json()) ?? [];
+    console.log(`Got ${coverage.length} rx-samples from service.`);
+  } catch (e) {
+    console.error("Getting rx-samples failed", e);
+  }
+
+  // Add coverage boxes.
+  coverage.forEach(c => {
+    coverageLayer.addLayer(rxCoverageMarker(c));
+  });
+}
+
 function renderNodes(nodes) {
   map.closePopup(); // Ensure pop-up handlers don't fire while updating.
   coverageLayer.clearLayers();
@@ -831,6 +890,6 @@ export async function refreshCoverage() {
 
   nodes = await resp.json();
   buildIndexes(nodes);
-  renderNodes(nodes);
+  await redrawMap();
   renderTopRepeaters();
 }

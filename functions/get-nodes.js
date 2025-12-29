@@ -9,6 +9,7 @@ export async function onRequest(context) {
     repeaters: []
   };
 
+  // TODO: Merge RxLog data here too?
   // Coverage
   const { results: coverage } = await context.env.DB
     .prepare(`
