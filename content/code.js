@@ -507,7 +507,7 @@ function rxCoverageMarker(c) {
     <div><b>${c.hash}</b>
     <span class="text-xs">${maxLat.toFixed(4)},${maxLon.toFixed(4)}</span></div>
     <div>Samples: ${c.count}</div>
-    ${c.snr ? `<div>SNR: ${c.snr ?? '✕'} · RSSI: ${c.rssi ?? '✕'}</div>` : ''}
+    <div>SNR: ${c.snr.toFixed(2)} · RSSI: ${c.rssi.toFixed(2)}</div>
     ${c.rptr.length > 0 ? `<div>Repeaters: ${c.rptr.join(', ')}</div>` : ''}
     <div class="text-xs">
     ${c.hrd ? `<div>Updated: ${shortDateStr(updated)}</div>` : ''}
@@ -531,7 +531,7 @@ function coverageMarker(c) {
     <div><b>${c.id} · (${(100 * obsRatio).toFixed(0)}%)</b>
     <span class="text-xs">${maxLat.toFixed(4)},${maxLon.toFixed(4)}</span></div>
     <div>Observed: ${c.obs} · Heard: ${c.hrd} · Lost: ${c.lost}</div>
-    ${c.snr ? `<div>SNR: ${c.snr ?? '✕'} · RSSI: ${c.rssi ?? '✕'}</div>` : ''}
+    ${c.snr || c.rssi ? `<div>SNR: ${c.snr ?? '✕'} · RSSI: ${c.rssi ?? '✕'}</div>` : ''}
     ${c.rptr.length > 0 ? `<div>Repeaters: ${c.rptr.join(', ')}</div>` : ''}
     <div class="text-xs">
     ${c.ut ? `<div>Updated: ${shortDateStr(updateDate)}</div>` : ''}
