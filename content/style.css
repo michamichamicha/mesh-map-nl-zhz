@@ -40,7 +40,8 @@ body,
 }
 
 .leaflet-interactive.marker-shadow {
-  filter: url('#marker-shadow')
+  /* Ends up being slow to render with thousands of samples. */
+  /*filter: url('#marker-shadow')*/
 }
 
 .repeater-dot {

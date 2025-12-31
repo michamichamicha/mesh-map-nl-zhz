@@ -13,7 +13,7 @@ import {
   sigmoid
 } from './shared.js'
 
-// Global Init
+// --- Global Init ---
 const map = L.map('map', {
   worldCopyJump: true,
   zoomControl: false,
@@ -38,6 +38,7 @@ let hashToCoverage = null; // Index of geohash -> coverage
 let edgeList = null; // List of connected repeater and coverage
 let topRepeaters = null; // List of [repeater, count] with most hits
 let rxData = null; // RxLog coverage
+let hitRepeaters = new Set(); // Set of repeaters hit by tiles
 
 // Map layers
 const coverageLayer = L.layerGroup().addTo(map);
@@ -45,7 +46,8 @@ const edgeLayer = L.layerGroup().addTo(map);
 const sampleLayer = L.layerGroup().addTo(map);
 const repeaterLayer = L.layerGroup().addTo(map);
 
-// Map controls
+// --- Map controls ---
+// Main Controls
 const mapControl = L.control({ position: 'topleft' });
 mapControl.onAdd = m => {
   const div = L.DomUtil.create('div', 'mesh-control leaflet-control');
@@ -274,6 +276,7 @@ L.circle(centerPos, {
   fill: false
 }).addTo(map);
 
+// --- UX Helpers ---
 function escapeHtml(s) {
   return String(s)
     .replaceAll('&', '&amp;')
@@ -498,6 +501,7 @@ function getCoverageStyle(coverage) {
   return style;
 }
 
+// --- Marker Builders ---
 function rxCoverageMarker(c) {
   const [minLat, minLon, maxLat, maxLon] = geo.decode_bbox(c.hash);
   const updated = new Date(c.time);
@@ -515,6 +519,15 @@ function rxCoverageMarker(c) {
 
   rect.coverage = c;
   rect.bindPopup(details, { maxWidth: 320 });
+  rect.on('popupopen', e => updateAllEdgeVisibility(e.target.coverage, false));
+  rect.on('popupclose', () => updateAllEdgeVisibility());
+
+  if (window.matchMedia("(hover: hover)").matches) {
+    rect.on('mouseover', e => updateAllEdgeVisibility(e.target.coverage, false));
+    rect.on('mouseout', () => updateAllEdgeVisibility());
+  }
+
+  c.marker = rect;
   return rect;
 }
 
@@ -618,6 +631,7 @@ function repeaterMarker(r) {
   return marker;
 }
 
+// --- Repeater Helpers ---
 function getBestRepeater(fromPos, repeaterList) {
   if (repeaterList.length === 1) {
     return repeaterList[0];
@@ -644,13 +658,14 @@ function shouldShowRepeater(r) {
   if (repeaterSearch !== '') {
     return r.id.toLowerCase().startsWith(repeaterSearch);
   } else if (repeaterRenderMode === "hit") {
-    return r.hitBy.length > 0;
+    return hitRepeaters.has(r);
   } else if (repeaterRenderMode === 'none') {
     return false;
   }
   return true;
 }
 
+// --- Visibility ---
 function updateSampleMarkerVisibility(s) {
   const el = s.getElement();
   if (showSamples) {
@@ -725,7 +740,10 @@ function updateAllEdgeVisibility(end, dimTiles = false) {
   coverageToHighlight.forEach(m => updateCoverageMarkerHighlight(m, { highlight: true }));
 }
 
+// --- Render Map ---
 async function redrawMap() {
+  hitRepeaters.clear()
+
   switch (coloringMode) {
     case "rxLogRssi":
     case "rxLogSnr":
@@ -751,6 +769,7 @@ async function renderPassive() {
       const resp = await fetch("/get-rx-samples");
       rxData = (await resp.json()) ?? [];
       rxData.forEach(c => {
+        c.pos = posFromHash(c.hash);
         c.rptr = c.repeaters;
         delete c.repeaters;
       });
@@ -760,9 +779,40 @@ async function renderPassive() {
     }
   }
 
+  const rxEdgeList = [];
+
   // Add coverage boxes.
   rxData.forEach(c => {
     coverageLayer.addLayer(rxCoverageMarker(c));
+
+    c.rptr.forEach(r => {
+      const candidateRepeaters = idToRepeaters.get(r);
+      if (candidateRepeaters === undefined)
+        return;
+
+      const bestRepeater = getBestRepeater(c.pos, candidateRepeaters);
+      rxEdgeList.push({ repeater: bestRepeater, coverage: c });
+    });
+  });
+
+  // Add repeaters.
+  nodes.repeaters.forEach(r => {
+    repeaterLayer.addLayer(repeaterMarker(r));
+  });
+
+  // Add edges.
+  // TODO: Render on the fly instead to keep object count down?
+  rxEdgeList.forEach(e => {
+    const style = {
+      weight: 2,
+      opacity: 0,
+      dashArray: '2,4',
+      interactive: false,
+    };
+    const line = L.polyline([e.repeater.pos, e.coverage.pos], style);
+    line.ends = [e.repeater, e.coverage];
+    line.addTo(edgeLayer);
+    hitRepeaters.add(e.repeater);
   });
 }
 
@@ -784,8 +834,7 @@ function renderNodes(nodes) {
   });
 
   // Add repeaters.
-  const repeatersToAdd = [...idToRepeaters.values()].flat();
-  repeatersToAdd.forEach(r => {
+  nodes.repeaters.forEach(r => {
     repeaterLayer.addLayer(repeaterMarker(r));
   });
 
@@ -801,6 +850,7 @@ function renderNodes(nodes) {
     const line = L.polyline([e.repeater.pos, e.coverage.pos], style);
     line.ends = [e.repeater, e.coverage];
     line.addTo(edgeLayer);
+    hitRepeaters.add(e.repeater);
   });
 }
 
@@ -815,6 +865,7 @@ function renderTopRepeaters() {
   }
 }
 
+// --- Load and Init
 function buildIndexes(nodes) {
   hashToCoverage = new Map();
   idToRepeaters = new Map();
@@ -869,7 +920,6 @@ function buildIndexes(nodes) {
 
   // Index repeaters.
   nodes.repeaters.forEach(r => {
-    r.hitBy = [];
     r.pos = posFromHash(r.hash);
     [r.lat, r.lon] = r.pos;
     pushMap(idToRepeaters, r.id, r);
@@ -883,7 +933,6 @@ function buildIndexes(nodes) {
         return;
 
       const bestRepeater = getBestRepeater(coverage.pos, candidateRepeaters);
-      bestRepeater.hitBy.push(coverage);
       edgeList.push({ repeater: bestRepeater, coverage: coverage });
     });
   });
