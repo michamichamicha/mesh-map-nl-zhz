@@ -482,15 +482,9 @@ async function createWardriveChannel() {
     throw new Error("No free channel slots available");
   }
 
-  // Derived secret for #wardrive 4076c315c1ef385fa93f066027320fe5
-  const wardriveKey = new Uint8Array([
-    0x40, 0x76, 0xC3, 0x15, 0xC1, 0xEF, 0x38, 0x5F,
-    0xA9, 0x3F, 0x06, 0x60, 0x27, 0x32, 0x0F, 0xE5
-  ]);
-
   // Create and set the connection.
-  const channel = { channelIdx: idx, name: wardriveChannelName, wardriveKey };
-  await state.connection.setChannel(idx, wardriveChannelName, wardriveKey);
+  const channel = { channelIdx: idx, name: wardriveChannelName, wardriveChannelKey };
+  await state.connection.setChannel(idx, wardriveChannelName, wardriveChannelKey);
   return channel;
 }
 
