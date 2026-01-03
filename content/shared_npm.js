@@ -73,7 +73,7 @@ function roundToFourPlaces(n) {
   return Math.round(n * 10000) / 10000;
 }
 
-export function parseLocation(latStr, lonStr) {
+export function parseLocation(latStr, lonStr, validate = true) {
   let lat = parseFloat(latStr);
   let lon = parseFloat(lonStr);
 
@@ -84,7 +84,7 @@ export function parseLocation(latStr, lonStr) {
   lat = roundToFourPlaces(lat);
   lon = roundToFourPlaces(lon);
 
-  if (!isValidLocation([lat, lon])) {
+  if (validate && !isValidLocation([lat, lon])) {
     throw new Error(`${[lat, lon]} exceeds max distance`);
   }
 

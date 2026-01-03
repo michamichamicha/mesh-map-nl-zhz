@@ -1097,7 +1097,7 @@ function assertValidGeohash(h2) {
 function roundToFourPlaces(n2) {
   return Math.round(n2 * 1e4) / 1e4;
 }
-function parseLocation(latStr, lonStr) {
+function parseLocation(latStr, lonStr, validate = true) {
   let lat = parseFloat(latStr);
   let lon = parseFloat(lonStr);
   if (isNaN(lat) || isNaN(lon)) {
@@ -1105,7 +1105,7 @@ function parseLocation(latStr, lonStr) {
   }
   lat = roundToFourPlaces(lat);
   lon = roundToFourPlaces(lon);
-  if (!isValidLocation([lat, lon])) {
+  if (validate && !isValidLocation([lat, lon])) {
     throw new Error(`${[lat, lon]} exceeds max distance`);
   }
   return [lat, lon];
