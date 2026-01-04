@@ -45,7 +45,7 @@ export async function onRequest(context) {
               FROM json_each(excluded.samples) AS n
             )
             ORDER BY t DESC
-            LIMIT 10
+            LIMIT 25
           )
         )
     `)
