@@ -284,8 +284,9 @@ function savePingHistory() {
 }
 
 function addPingHistory(ping) {
-  // Don't add pings for the exact same location.
-  const existing = state.pings.find(p => p.hash == ping.hash);
+  // Don't add new pings of the same type at the same location.
+  const existing = state.pings.find(
+    p => p.hash == ping.hash && p.rxLog === ping.rxLog);
   if (existing)
     return;
 
@@ -317,6 +318,7 @@ function addPingMarker(ping) {
     className: "marker-shadow",
     interactive: false
   });
+  pingMarker.ping = ping;
   pingLayer.addLayer(pingMarker);
 }
 
@@ -1060,6 +1062,7 @@ export async function onLoad() {
 
     await startLocationTracking();
   } catch (e) {
-    alert(e);
-  }
+    const stack = e?.stack;
+    alert(`${String(e)}${stack ? `\nStack: ${stack}` : ''}`);
+ }
 }
