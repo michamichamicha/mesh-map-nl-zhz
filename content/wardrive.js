@@ -855,10 +855,10 @@ function blinkRxLog() {
   logoAnimation?.cancel();
   logoAnimation = logoEl.animate(
     [
-        { filter: "grayscale(0)", opacity: .99 },
-        { filter: "grayscale(1)", opacity: 1 }
+        { boxShadow: "0 0 18px rgba(34,197,22,1)" },
+        { boxShadow: "0 0 18px rgba(34,197,22,0)" }
     ],
-    { duration: 300, easing: "ease-in-out", fill: "forwards" }
+    { duration: 300, easing: "ease-in-out", fill: "none" }
   );
 }
 
