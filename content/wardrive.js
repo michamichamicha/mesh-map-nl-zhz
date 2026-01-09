@@ -958,8 +958,11 @@ async function onLogRxData(frame) {
   // NB: It's expected to have invalid RSSI when hitMobileRepeater is true.
   const shouldSendRxStats = !hitMobileRepeater;
   if (shouldSendRxStats) {
-    blinkRxLog();
-    await trySendRxSample(lastRepeater, lastSnr, lastRssi);
+    requestAnimationFrame(() => blinkRxLog());
+    // Defer await so animation has a chance to run.
+    setTimeout(async () => {
+      await trySendRxSample(lastRepeater, lastSnr, lastRssi);
+    }, 0);
   }
 
   const reader = new BufferReader(packet.payload);
