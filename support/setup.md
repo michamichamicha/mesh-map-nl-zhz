@@ -86,7 +86,7 @@ want to lose, you will need to run the upgrade_000.sql scripts, *in order*. Ther
 DB versioning currently so you'll need to know what was the last upgrade you ran and
 run everything after that. To help you determine whether you need to run an upgrade,
 here's a change log.
-* update_001.sql -- adds columns needed for regional mesh name support.
+* upgrade_001.sql -- adds columns needed for regional mesh name support.
 
 #### Old KV Version
 If you have data in KV namespaces (previously used), you can migrate your existing data into the database.
