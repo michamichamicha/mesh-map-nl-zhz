@@ -1,6 +1,6 @@
 {
     "$schema": "./node_modules/wrangler/config-schema.json",
-    "name": "mesh-map",
+    "name": "mesh-map-nl-zhz",
     "pages_build_output_dir": ".",
     "compatibility_date": "2025-11-05",
     "compatibility_flags": [
@@ -9,7 +9,7 @@
     "d1_databases": [
         {
             "binding": "DB",
-            "database_name": "mesh-map",
+            "database_name": "mesh-map-nl-zhz",
             "database_id": "0f2791c4-a6aa-4fb6-bd13-686a9d8cbe37"
         }
     ]

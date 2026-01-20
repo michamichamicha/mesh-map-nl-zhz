@@ -7,8 +7,8 @@ export { aes, geo };  // export APIs.
 
 // --- Exported Constants ---
 // The center position to use for point filtering.
-export const centerPos = [51.809258, 4.648168];
-export const maxDistanceMiles = 150;
+export const centerPos = [52.228936, 5.321492];
+export const maxDistanceMiles = 125;
 export const dayInMillis = 24 * 60 * 60 * 1000;
 
 // About 1 minute accuracy.
