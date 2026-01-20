@@ -4181,8 +4181,8 @@ var w = function(r2) {
 };
 
 // content/shared_npm.js
-var centerPos = [51.809258, 4.648168];
-var maxDistanceMiles = 150;
+var centerPos = [52.228936, 5.321492];
+var maxDistanceMiles = 125;
 var dayInMillis = 24 * 60 * 60 * 1e3;
 var TIME_TRUNCATION = 1e5;
 var MAX_VALID_RSSI = -31;

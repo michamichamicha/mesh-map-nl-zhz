@@ -1,25 +1,26 @@
 {
-	"name": "mesh-map",
-	"version": "1.0.0",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"test": "vitest"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.19",
-		"vitest": "~3.2.0",
-		"wrangler": "^4.45.4"
-	},
-	"dependencies": {
-		"@tailwindcss/cli": "^4.1.17",
-		"aes-js": "^3.1.2",
-		"colord": "^2.9.3",
-		"esbuild": "^0.27.0",
-		"ngeohash": "^0.6.3",
-		"string-to-color": "^2.2.2",
-		"tailwindcss": "^4.1.17"
-	}
+  "name": "mesh-map",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild content/shared_npm.js --bundle --format=esm --outfile=content/shared.js",
+    "deploy": "npm run build && wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.19",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.45.4"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.17",
+    "aes-js": "^3.1.2",
+    "colord": "^2.9.3",
+    "esbuild": "^0.27.0",
+    "ngeohash": "^0.6.3",
+    "string-to-color": "^2.2.2",
+    "tailwindcss": "^4.1.17"
+  }
 }

@@ -194,6 +194,25 @@ mapControl.onAdd = m => {
 };
 mapControl.addTo(map);
 
+
+// Start wardrive
+const startWardriveButton = L.control({ position: 'topright' });
+startWardriveButton.onAdd = m => {
+  const div = L.DomUtil.create('div', 'mesh-control leaflet-control');
+
+  div.innerHTML = `
+    <a href="/wardrive" class="mesh-control-row">Start wardrive 🚙</a>
+  `;
+
+  
+  // Don’t let clicks on the control bubble up and pan/zoom the map.
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.disableScrollPropagation(div);
+
+  return div;
+};
+startWardriveButton.addTo(map);
+
 // Top Repeaters
 const repeaterStatsControl = L.control({ position: 'topright' });
 repeaterStatsControl.onAdd = m => {
